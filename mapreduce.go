@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+type MapReduceEntry struct {
+	entryString string
+	lineIndex uint64
+}
+
 func handleError(err error) {
 	//fmt.Fprintln(os.Stderr, err)
 }
@@ -18,7 +23,7 @@ func handleError(err error) {
 func MapReduce(file io.Reader, parser *Parser, reducer Reducer) chan *Entry {
 	// Input file lines. This channel is unbuffered to publish
 	// next line to handle only when previous is taken by mapper.
-	var lines = make(chan string)
+	var lines = make(chan *MapReduceEntry)
 
 	// Host thread to spawn new mappers
 	var entries = make(chan *Entry, 10)
@@ -49,7 +54,8 @@ func MapReduce(file io.Reader, parser *Parser, reducer Reducer) chan *Entry {
 					sem <- false
 					return
 				}
-				entry, err := parser.ParseString(line)
+				entry, err := parser.ParseString(line.entryString)
+				entry.entryIndex = line.lineIndex
 				if err == nil {
 					// Write result Entry to the output channel. This will
 					// block goroutine runtime until channel is free to
@@ -73,9 +79,14 @@ func MapReduce(file io.Reader, parser *Parser, reducer Reducer) chan *Entry {
 
 	go func() {
 		scanner := bufio.NewScanner(file)
+		lineIndexCtr := uint64(1)
 		for scanner.Scan() {
 			// Read next line from the file and feed mapper routines.
-			lines <- scanner.Text()
+			lines <- &MapReduceEntry{
+				entryString: scanner.Text(),
+				lineIndex: lineIndexCtr,
+			}
+			lineIndexCtr += uint64(1)
 		}
 		close(lines)
 

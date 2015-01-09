@@ -13,16 +13,23 @@ type Fields map[string]string
 // threating this as a map, because inner representation is in design.
 type Entry struct {
 	fields Fields
+	entryIndex uint64
 }
 
 // Creates an empty Entry to be filled later
 func NewEmptyEntry() *Entry {
-	return &Entry{make(Fields)}
+	return &Entry{
+		fields: make(Fields),
+		entryIndex: uint64(0),
+	}
 }
 
 // Creates an Entry with fiven fields
 func NewEntry(fields Fields) *Entry {
-	return &Entry{fields}
+	return &Entry{
+		fields: fields,
+		entryIndex: uint64(0),
+	}
 }
 
 // Return entry field value by name or empty string and error if it
@@ -89,4 +96,8 @@ func (entry *Entry) Partial(fields []string) *Entry {
 		partial.SetField(name, value)
 	}
 	return partial
+}
+
+func (entry *Entry) EntryIndex() uint64 {
+	return entry.entryIndex
 }
